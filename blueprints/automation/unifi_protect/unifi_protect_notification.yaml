@@ -7,12 +7,7 @@ blueprint:
     min_version: "2024.6.0"
 
   input:
-    automation_name:
-      name: Automation name
-      description: Name shown in the Home Assistant automation list.
-      default: UniFi Protect Notification
-      selector:
-        text:
+
     event:
       name: Event
       icon: mdi:motion-sensor
@@ -147,8 +142,6 @@ variables:
   dashboard_url: !input dashboard_url
   cooldown_seconds: !input cooldown_seconds
   wake_screen: !input wake_screen
-
-alias: !input automation_name
 
 triggers:
   - trigger: event.received

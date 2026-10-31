@@ -1,107 +1,136 @@
 blueprint:
   name: UniFi Protect Event Notification
   description: >
-    Sends an immediate thumbnail notification, then updates it with the
-    event video after a configurable delay.
+    Sends an immediate thumbnail notification, followed by an event video.
   domain: automation
+  homeassistant:
+    min_version: "2024.6.0"
 
   input:
-    event_entity:
-      name: Protect event entity
-      description: The event entity to listen to.
-      selector:
-        entity:
-          domain: event
+    event:
+      name: Event
+      icon: mdi:motion-sensor
+      description: Choose which UniFi Protect event to monitor.
+      input:
+        event_entity:
+          name: Protect event entity
+          selector:
+            entity:
+              domain: event
 
-    event_type:
-      name: Event type
-      description: For example, ring or person.
-      default: ring
-      selector:
-        text:
+        event_type:
+          name: Event type
+          default: person
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Person
+                  value: person
+                - label: Animal
+                  value: animal
+                - label: Vehicle
+                  value: vehicle
+                - label: License plate
+                  value: license_plate
+                - label: Package
+                  value: package
+                - label: Face
+                  value: face
+                - label: Car
+                  value: car
+                - label: Pet
+                  value: pet
+                - label: Doorbell ring
+                  value: ring
 
-    notification_service:
-      name: Notification service
-      description: Your YAML notification group.
-      default: notify.notify_phones
-      selector:
-        text:
+    notifications:
+      name: Notifications
+      icon: mdi:bell
+      description: Configure what appears on your phones.
+      input:
+        notification_service:
+          name: Notification service
+          default: notify.notify_phones
+          selector:
+            text:
 
-    notification_title:
-      name: Notification title
-      default: Someone is at the front door
-      selector:
-        text:
+        notification_title:
+          name: Notification title
+          default: Someone is at the front door
+          selector:
+            text:
 
-    notification_message:
-      name: Notification message
-      default: Front Door
-      selector:
-        text:
+        notification_message:
+          name: Notification message
+          default: Front Door
+          selector:
+            text:
 
-    video_message:
-      name: Video notification message
-      default: Video available
-      selector:
-        text:
+        video_message:
+          name: Video notification message
+          default: Video available
+          selector:
+            text:
 
-    notification_tag:
-      name: Notification tag
-      description: Keep this different for each automation.
-      default: front_doorbell
-      selector:
-        text:
+        notification_tag:
+          name: Notification tag
+          default: front_doorbell
+          selector:
+            text:
 
-    notification_channel:
-      name: Android notification channel
-      default: Doorbell Full Screen
-      selector:
-        text:
+        notification_channel:
+          name: Android notification channel
+          default: Doorbell Full Screen
+          selector:
+            text:
 
-    dashboard_url:
-      name: Camera dashboard path
-      default: /dashboard-cameras/front-doorbell
-      selector:
-        text:
+        dashboard_url:
+          name: Camera dashboard path
+          default: /dashboard-cameras/front-doorbell
+          selector:
+            text:
 
-    video_delay:
-      name: Video delay
-      description: Seconds to wait before sending the video update.
-      default: 12
-      selector:
-        number:
-          min: 0
-          max: 60
-          unit_of_measurement: seconds
-          mode: box
+    behavior:
+      name: Behavior
+      icon: mdi:cog
+      description: Control timing and how repeated events are handled.
+      input:
+        video_delay:
+          name: Video delay
+          default: 12
+          selector:
+            number:
+              min: 0
+              max: 60
+              unit_of_measurement: seconds
+              mode: box
 
-    cooldown_seconds:
-      name: Cooldown
-      description: Minimum seconds between notifications. Use 0 to disable.
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 3600
-          unit_of_measurement: seconds
-          mode: box
+        cooldown_seconds:
+          name: Cooldown
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 3600
+              unit_of_measurement: seconds
+              mode: box
 
-    wake_screen:
-      name: Wake phone screen
-      default: true
-      selector:
-        boolean:
+        wake_screen:
+          name: Wake phone screen
+          default: true
+          selector:
+            boolean:
 
-    automation_mode:
-      name: Automation mode
-      description: How to handle new events while a notification is running.
-      default: single
-      selector:
-        select:
-          options:
-            - single
-            - restart
-            - queued
+        automation_mode:
+          name: Automation mode
+          default: single
+          selector:
+            select:
+              options:
+                - single
+                - restart
+                - queued
 
 variables:
   notification_title: !input notification_title
@@ -112,6 +141,8 @@ variables:
   dashboard_url: !input dashboard_url
   cooldown_seconds: !input cooldown_seconds
   wake_screen: !input wake_screen
+
+alias: !input automation_name
 
 triggers:
   - trigger: event.received

@@ -1,0 +1,176 @@
+blueprint:
+  name: UniFi Protect Event Notification
+  description: >
+    Sends an immediate thumbnail notification, then updates it with the
+    event video after a configurable delay.
+  domain: automation
+
+  input:
+    event_entity:
+      name: Protect event entity
+      description: The event entity to listen to.
+      selector:
+        entity:
+          domain: event
+
+    event_type:
+      name: Event type
+      description: For example, ring or person.
+      default: ring
+      selector:
+        text:
+
+    notification_service:
+      name: Notification service
+      description: Your YAML notification group.
+      default: notify.notify_phones
+      selector:
+        text:
+
+    notification_title:
+      name: Notification title
+      default: Someone is at the front door
+      selector:
+        text:
+
+    notification_message:
+      name: Notification message
+      default: Front Door
+      selector:
+        text:
+
+    video_message:
+      name: Video notification message
+      default: Video available
+      selector:
+        text:
+
+    notification_tag:
+      name: Notification tag
+      description: Keep this different for each automation.
+      default: front_doorbell
+      selector:
+        text:
+
+    notification_channel:
+      name: Android notification channel
+      default: Doorbell Full Screen
+      selector:
+        text:
+
+    dashboard_url:
+      name: Camera dashboard path
+      default: /dashboard-cameras/front-doorbell
+      selector:
+        text:
+
+    video_delay:
+      name: Video delay
+      description: Seconds to wait before sending the video update.
+      default: 12
+      selector:
+        number:
+          min: 0
+          max: 60
+          unit_of_measurement: seconds
+          mode: box
+
+    cooldown_seconds:
+      name: Cooldown
+      description: Minimum seconds between notifications. Use 0 to disable.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+          mode: box
+
+    wake_screen:
+      name: Wake phone screen
+      default: true
+      selector:
+        boolean:
+
+    automation_mode:
+      name: Automation mode
+      description: How to handle new events while a notification is running.
+      default: single
+      selector:
+        select:
+          options:
+            - single
+            - restart
+            - queued
+
+variables:
+  notification_title: !input notification_title
+  notification_message: !input notification_message
+  video_message: !input video_message
+  notification_tag: !input notification_tag
+  notification_channel: !input notification_channel
+  dashboard_url: !input dashboard_url
+  cooldown_seconds: !input cooldown_seconds
+  wake_screen: !input wake_screen
+
+triggers:
+  - trigger: event.received
+    target:
+      entity_id: !input event_entity
+    options:
+      event_type:
+        - !input event_type
+
+conditions:
+  - condition: template
+    value_template: >
+      {{ cooldown_seconds | int == 0
+         or this.attributes.last_triggered is none
+         or (now() - this.attributes.last_triggered).total_seconds()
+            >= cooldown_seconds | int }}
+
+actions:
+  - if:
+      - condition: template
+        value_template: "{{ wake_screen }}"
+    then:
+      - action: !input notification_service
+        data:
+          message: command_screen_on
+
+  - action: !input notification_service
+    data:
+      title: "{{ notification_title }}"
+      message: "{{ notification_message }}"
+      data:
+        tag: "{{ notification_tag }}"
+        channel: "{{ notification_channel }}"
+        importance: max
+        priority: high
+        ttl: 0
+        visibility: public
+        vibrationPattern: "100, 300, 100, 300, 100, 300"
+        image: >-
+          /api/unifiprotect/thumbnail/{{ config_entry_id(trigger.entity_id) }}/{{ trigger.to_state.attributes.event_id }}
+        clickAction: "{{ dashboard_url }}"
+
+  - delay:
+      seconds: !input video_delay
+
+  - action: !input notification_service
+    data:
+      title: "{{ notification_title }}"
+      message: "{{ notification_message }} · {{ video_message }}"
+      data:
+        tag: "{{ notification_tag }}"
+        channel: "{{ notification_channel }}"
+        importance: max
+        priority: high
+        ttl: 0
+        visibility: public
+        alert_once: true
+        video: >-
+          /api/unifiprotect/video/{{ config_entry_id(trigger.entity_id) }}/{{ trigger.to_state.attributes.event_id }}
+        clickAction: "{{ dashboard_url }}"
+
+mode: !input automation_mode
